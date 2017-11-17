@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import PerfectWebSockets
 
 enum UserError: Error {
     case failedToCreate
@@ -14,24 +15,32 @@ enum UserError: Error {
 
 class ChatUser: Hashable {
     
+    var id: String
     var email: String
-    var avatarURI: String
-    var displayName: String
+    var name: String
+    var socket: WebSocket?
+    var groupList = [Group]()
     
-    init(json: [String: Any]) throws {
+    
+    init(json: [String: Any], _ socket: WebSocket) throws {
         
-        guard let userEmail = json["email"] as? String, let avatarURL = json["avatar"] as? String, let name = json["displayName"] as? String else { throw UserError.failedToCreate }
+        guard let email = json["email"] as? String, let name = json["name"] as? String else { throw UserError.failedToCreate }
         
-        self.email = userEmail
-        self.avatarURI = avatarURL
-        self.displayName = name
+        self.id = UUID().uuidString
+        self.email = email
+        self.name = name
+        self.socket = socket
     }
     
     //Plain == make a bot!
     init() {
+        self.id = UUID().uuidString
         self.email = "nil"
-        self.displayName = "Bot"
-        self.avatarURI = "http://en.gravatar.com/avatar/0"
+        self.name = "Bot"
+    }
+    
+    func addGroup(_ group: Group) {
+        groupList.append(group)
     }
     
     var hashValue: Int {
@@ -41,4 +50,5 @@ class ChatUser: Hashable {
     static func == (lhs: ChatUser, rhs: ChatUser) -> Bool {
         return lhs.email == rhs.email
     }
+    
 }

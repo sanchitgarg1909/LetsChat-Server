@@ -1,10 +1,3 @@
-//
-//  Handlers.swift
-//  Perfect-Chat-Demo
-//
-//  Created by Ryan Collins on 1/27/17.
-//
-//
 
 import Foundation
 import PerfectLib
@@ -34,7 +27,7 @@ func chatHandler(data: [String:Any]) throws -> RequestHandler {
 
 class ChatHandler: WebSocketSessionHandler {
     
-    var user: ChatUser? = nil
+//    var user: ChatUser? = nil
     
     // The name of the super-protocol we implement.
     // This is optional, but it should match whatever the client-side WebSocket is initialized with.
@@ -58,10 +51,10 @@ class ChatHandler: WebSocketSessionHandler {
             // By default there is no timeout.
             guard let string = string else {
                 // This block will be executed if, for example, the browser window is closed.
-                if let chatUser = self.user {
-                    print("socket closed for \(chatUser.email)")
-                    Chatroom.instance.leave(user: chatUser)
-                }
+//                if let chatUser = self.user {
+//                    print("socket closed for \(chatUser.email)")
+////                    Chatroom.instance.leave(user: chatUser)
+//                }
                 
                 socket.close()
                 return
@@ -72,17 +65,37 @@ class ChatHandler: WebSocketSessionHandler {
             
             do {
                 guard fin == true, let json = try string.jsonDecode() as? [String: Any] else {return}
-                self.user = try ChatUser(json: json)
                 
-                if let chatUser = self.user {
-                    if let message = json["message"] as? String {
-                        //If there's a message attached, we send it
-                        Chatroom.instance.sendMessage(message, fromUser: chatUser)
-                    } else {
-                        //Otherwise, they must be joining, so add them!
-                        Chatroom.instance.join(user: chatUser, socket: socket)
+                if let event = json["event"] as? String {
+                    switch event {
+                    case "adduser":
+                        self.addUser(userInfo: json, socket: socket)
+                        break
+                    case "addgroup":
+                        self.addGroup(groupInfo: json, socket: socket)
+                        break
+                    case "joingroup":
+                        self.joinGroup(json)
+                        break
+                    case "sendmessage":
+                        self.sendMessage(json)
+                        break
+                    default:
+                        print("cant recognise event")
+                        break
                     }
                 }
+//                self.user = try ChatUser(json: json, socket)
+//
+//                if let chatUser = self.user {
+//                    if let message = json["message"] as? String {
+//                        //If there's a message attached, we send it
+//                        Chatroom.instance.joinGroup(userId: "asc",groupId: "saca")
+//                    } else {
+//                        //Otherwise, they must be joining, so add them!
+//                        Chatroom.instance.join(user: chatUser, socket: socket)
+//                    }
+//                }
                 
                 
             } catch {
@@ -91,6 +104,49 @@ class ChatHandler: WebSocketSessionHandler {
             
             //Done working on this message? Loop back around and read the next message.
             self.handleSession(request: request, socket: socket)
+        }
+    }
+    
+    func addUser(userInfo json: [String: Any], socket: WebSocket) {
+        print("inside add user")
+        do {
+            let user = try ChatUser(json: json, socket)
+            Chatroom.instance.addUser(user: user)
+            socket.sendStringMessage(string: "{\"type\": \"user\", \"id\": \"\(user.id)\"}", final: true) {
+                print("returned user id")
+            }
+        } catch {
+            print("inside catch")
+        }
+    }
+    
+    func addGroup(groupInfo json: [String: Any], socket: WebSocket) {
+        print("inside add group")
+        do {
+            let group = try Group(json: json)
+            Chatroom.instance.addGroup(group: group)
+            socket.sendStringMessage(string: "{\"type\": \"group\", \"id\": \"\(group.id)\"}", final: true) {
+                print("returned group id")
+            }
+        } catch {
+            print("inside catch")
+        }
+    }
+    
+    func joinGroup(_ json: [String: Any]) {
+        print("inside join group")
+        if let groupId = json["groupid"] as? String,
+            let userId = json["userid"] as? String {
+            Chatroom.instance.joinGroup(userId: userId, groupId: groupId)
+        }
+    }
+    
+    func sendMessage(_ json: [String: Any]) {
+        print("inside send message")
+        if let groupId = json["groupid"] as? String,
+            let userId = json["userid"] as? String,
+            let message = json["message"] as? String {
+            Chatroom.instance.sendMessage(message: message, fromUser: userId, toGroup: groupId)
         }
     }
 }
