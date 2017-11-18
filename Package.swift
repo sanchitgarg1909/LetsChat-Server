@@ -5,7 +5,8 @@ let package = Package(
     name: "Perfect-Chat-Demo",
     targets: [],
     dependencies: [
-        .Package(url: "https://github.com/PerfectlySoft/Perfect-HTTPServer.git", majorVersion: 2),
-        .Package(url: "https://github.com/PerfectlySoft/Perfect-WebSockets.git", majorVersion: 2),
+        .Package(url: "https://github.com/PerfectlySoft/Perfect-HTTPServer.git", majorVersion: 3),
+        .Package(url: "https://github.com/PerfectlySoft/Perfect-WebSockets.git", majorVersion: 3),
+        .Package(url: "https://github.com/SwiftORM/MongoDB-StORM.git", majorVersion: 3),
     ]
 )
